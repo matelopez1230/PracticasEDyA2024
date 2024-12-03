@@ -17,7 +17,7 @@ TablaHash crear_tabla(unsigned capacidad, Funcion_copiadora copy, Funcion_compar
     tabla->hashing = hash;
     tabla->mode = modo;
 
-    for (unsigned idx = 0; idx < capacidad; idx++){
+    for (unsigned idx = 0; idx < capacidad; ++idx){
         tabla->elems[idx].first= NULL;
     }
     return tabla;
@@ -83,4 +83,54 @@ void *encadenamiento_buscar(TablaHash tabla, void* dato) {
         node = node->sig;
     }
     return NULL;
+}
+
+void encadenamiento_buscar(TablaHash tabla, void * dato) {
+    unsigned idx = tabla->hashing(dato) % tabla->Capacidad;
+
+    Nodo *node = tabla->elems[idx].first;
+    Nodo *prev = NULL;
+
+    while (node != NULL) {
+        if (tabla->comp(node->value,dato) == 0) {
+            if (prev == NULL) {
+                tabla->elems[idx].first = node->sig;
+            } else {
+                prev->sig = node->sig;
+            }
+            tabla->dstry(node->value);
+            free(node);
+            tabla->NumElems--;
+            return;
+        }
+        prev = node;
+        node = node->sig;
+    }
+}
+
+
+void tablahash_redimencionar(TablaHash tabla) {
+    unsigned nueva_capacidad = tabla->Capacidad *2;
+    CasillaHash *newelems = malloc(sizeof(CasillaHash)*nueva_capacidad);
+    assert(newelems != NULL);
+
+    for (unsigned idx = 0; idx < nueva_capacidad; ++idx) {
+        newelems[idx].first = NULL;
+    }
+    
+    for (unsigned idx = 0; idx < tabla->Capacidad; ++idx) {
+        Nodo * node = tabla->elems[idx].first;
+        while (node != NULL) {
+            Nodo *next = node->sig;
+            unsigned new_idx = tabla->hashing(node->value) % nueva_capacidad;
+
+            node->sig = newelems[new_idx].first;
+            newelems[new_idx].first = node;
+            node = next;
+        }
+        
+    }
+    free(tabla->elems);
+    tabla->elems = newelems;
+    tabla->Capacidad = nueva_capacidad;
 }
